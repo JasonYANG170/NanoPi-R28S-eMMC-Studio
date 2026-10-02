@@ -1,0 +1,155 @@
+name: Build NanoPi R28S eMMC Studio firmware
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - 'userpatches/**'
+      - 'scripts/**'
+      - 'sources.json'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firmware-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Read pinned sources
+        id: sources
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, re
+          data = json.load(open('sources.json'))
+          for name in ('armbian', 'studio'):
+              commit = data[name]['commit']
+              assert re.fullmatch('[a-f0-9]{40}', commit)
+              print(f'{name}={commit}')
+          PY
+      - name: Checkout Armbian framework
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: armbian/build
+          ref: ${{ steps.sources.outputs.armbian }}
+          path: build
+          persist-credentials: false
+      - name: Checkout eMMC Studio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: JasonYANG170/eMMC-Studio
+          ref: ${{ steps.sources.outputs.studio }}
+          path: studio
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
+      - name: Build and test eMMC Studio frontend
+        working-directory: studio
+        run: |
+          npm ci
+          npm run test:frontend
+          npm run build
+      - name: Free runner disk space
+        uses: descriptinc/free-disk-space@1b4b157593c6801212a2ed488c205e0a810b4592
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+      - name: Prepare and check customization
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck qemu-user-static binfmt-support xz-utils
+          find userpatches scripts -name '*.sh' -print0 | xargs -0 shellcheck
+          find userpatches scripts -name '*.sh' -print0 | xargs -0 -n1 bash -n
+          python3 scripts/prepare.py
+          bash scripts/test-bootstrap.sh
+          df -h .
+          docker info
+      - name: Build Armbian image from source
+        working-directory: build
+        run: |
+          ./compile.sh build emmc-studio PREFER_DOCKER=yes SHOW_LOG=yes
+      - name: Verify and package firmware
+        run: |
+          set -euo pipefail
+          mkdir -p output
+          mapfile -t images < <(find build/output/images -maxdepth 1 -type f -name '*.img')
+          [[ ${#images[@]} == 1 ]]
+          sudo bash scripts/verify-image.sh "${images[0]}" | tee output/verification.txt
+          cp userpatches/overlay/build-info.json output/build-info.json
+          cp README.md output/README.md
+          filename="NanoPi-R28S-eMMC-Studio-trixie-vendor-${GITHUB_RUN_NUMBER}.img"
+          mv "${images[0]}" "output/$filename"
+          xz -T2 -6 "output/$filename"
+          cd output
+          sha256sum *.img.xz build-info.json verification.txt README.md > SHA256SUMS
+      - name: Save validated firmware
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: firmware
+          path: output/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - name: Save build logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: armbian-build-logs
+          path: build/output/logs/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  lint:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          find userpatches scripts -name '*.sh' -print0 | xargs -0 shellcheck
+          find userpatches scripts -name '*.sh' -print0 | xargs -0 -n1 bash -n
+          python3 -m py_compile scripts/prepare.py
+
+  release:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: firmware
+          path: output
+      - name: Publish verified image
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd output
+          sha256sum -c SHA256SUMS
+          tag="firmware-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          gh release create "$tag" ./* \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "NanoPi R28S · eMMC Studio · ${GITHUB_RUN_NUMBER}" \
+            --notes-file ../docs/RELEASE.md
