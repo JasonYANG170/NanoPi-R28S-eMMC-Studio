@@ -1,0 +1,13 @@
+{
+  "armbian": {
+    "repository": "armbian/build",
+    "commit": "296c79f1d0de7d57837bb50588b84e11d14da5e4"
+  },
+  "studio": {
+    "repository": "JasonYANG170/eMMC-Studio",
+    "commit": "1da2988e753af78093b5c705d0e693ae2938ece8"
+  },
+  "board": "nanopi-r28s",
+  "branch": "vendor",
+  "release": "trixie"
+}

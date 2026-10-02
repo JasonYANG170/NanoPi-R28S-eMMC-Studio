@@ -1,0 +1,12 @@
+[Unit]
+Description=Generate a unique eMMC Studio administrator setup code
+After=local-fs.target
+Before=emmc-web.service
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/emmc-studio-firstboot
+RemainAfterExit=yes
+UMask=0077
+StandardOutput=journal+console
+[Install]
+WantedBy=multi-user.target

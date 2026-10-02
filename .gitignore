@@ -1,0 +1,9 @@
+build/
+studio/
+output/
+userpatches/overlay/emmc-studio/
+userpatches/overlay/build-info.json
+__pycache__/
+*.img
+*.img.xz
+*.log
