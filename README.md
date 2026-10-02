@@ -1,3 +1,5 @@
+[简体中文](README.md) | [English](README_en.md)
+
 # NanoPi R28S · eMMC Studio 固件
 
 基于 [Armbian NanoPi R28S](https://armbian.com/boards/nanopi-r28s) 的 Debian 13 trixie / vendor / minimal CLI 固件，预装 [eMMC Studio](https://github.com/JasonYANG170/eMMC-Studio)。在 GitHub Actions 中使用 Armbian 官方构建框架生成完整启动镜像，包含内核、U-Boot、设备树和预装网页。
