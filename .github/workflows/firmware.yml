@@ -96,6 +96,7 @@ jobs:
           cp userpatches/overlay/build-info.json output/build-info.json
           cp README.md output/README.md
           filename="NanoPi-R28S-eMMC-Studio-trixie-vendor-${GITHUB_RUN_NUMBER}.img"
+          sudo chown "$(id -u):$(id -g)" "${images[0]}"
           mv "${images[0]}" "output/$filename"
           xz -T2 -6 "output/$filename"
           cd output
