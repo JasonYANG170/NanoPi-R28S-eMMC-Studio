@@ -20,7 +20,7 @@
 
 ## 首次登录与网页初始化
 
-Armbian 系统登录遵循其 [首次登录流程](https://docs.armbian.com/os/getting-started/first-boot/)；系统账号与网页管理员是两个独立账号。串口参数请采用 NanoPi R28S 的板卡说明。
+Armbian 系统登录遵循其 [首次登录流程](https://docs.armbian.com/getting-started/first-boot-and-login/)；系统账号与网页管理员是两个独立账号。SSH 首次登录使用 `root` / `1234`，随后按系统提示修改密码、建立普通用户。串口参数请采用 NanoPi R28S 的板卡说明。
 
 eMMC Studio 在首次启动时生成独立一次性设置码，不在 CI 或发布镜像中生成密码。系统登录后执行：
 
