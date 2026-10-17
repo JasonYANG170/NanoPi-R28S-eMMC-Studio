@@ -7,6 +7,11 @@
     "repository": "JasonYANG170/eMMC-Studio",
     "commit": "1da2988e753af78093b5c705d0e693ae2938ece8"
   },
+  "uboot": {
+    "repository": "radxa/u-boot",
+    "commit": "39cd993e5d6296635438e84f4576b3a9bf76f86e",
+    "policy": "sd-only-spl-and-uboot"
+  },
   "board": "nanopi-r28s",
   "branch": "vendor",
   "release": "trixie"

@@ -7,3 +7,5 @@
 系统 SD 卡作为受保护的系统盘；eMMC 作为被管理存储，启动后不会自动覆盖 eMMC 或 BOOT 区。请阅读仓库 README 的刷写、初始化及故障排查说明。
 
 `build-info.json` 记录固定源码提交；`verification.txt` 为成品镜像只读检查结果。CI 检查不等同于真机启动验收，首次使用请通过串口确认本板启动与 eMMC 识别。
+
+本版本限制 SPL/U-Boot 自动启动仅从 TF 卡加载，不回退到 eMMC。Linux 仍可读写 eMMC。此限制不改变芯片 BootROM；未插有效 TF 启动卡时仍可能执行 eMMC 上的其他加载器。

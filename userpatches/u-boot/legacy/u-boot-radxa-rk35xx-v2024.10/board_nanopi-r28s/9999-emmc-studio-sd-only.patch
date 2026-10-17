@@ -1,0 +1,82 @@
+diff --git a/arch/arm/mach-rockchip/Kconfig b/arch/arm/mach-rockchip/Kconfig
+index 48a4c00..8aab640 100644
+--- a/arch/arm/mach-rockchip/Kconfig
++++ b/arch/arm/mach-rockchip/Kconfig
+@@ -1,5 +1,13 @@
+ if ARCH_ROCKCHIP
+ 
++config EMMC_STUDIO_SD_ONLY
++	bool "eMMC Studio: boot from SD only"
++	depends on ROCKCHIP_RK3528
++	default n
++	help
++	  Restrict SPL and automatic U-Boot boot to SD (MMC index 1).
++	  Keep eMMC available to Linux. This does not change the BootROM.
++
+ config ROCKCHIP_PX30
+ 	bool "Support Rockchip PX30"
+ 	select ARM64 if !ARM64_BOOT_AARCH32
+diff --git a/arch/arm/mach-rockchip/boot_rkimg.c b/arch/arm/mach-rockchip/boot_rkimg.c
+index cb5db30..f0c689e 100644
+--- a/arch/arm/mach-rockchip/boot_rkimg.c
++++ b/arch/arm/mach-rockchip/boot_rkimg.c
+@@ -98,6 +98,18 @@ static void boot_devtype_init(void)
+ 	mpb_post(0);
+ #endif
+ 
++#ifdef CONFIG_EMMC_STUDIO_SD_ONLY
++	/* Ignore assigned media and loader ATAGS in reader firmware. */
++	if (bootdev_init("mmc", "1")) {
++		puts("eMMC Studio: SD boot device unavailable; stopping\n");
++		hang();
++	}
++	env_set("boot_targets", "mmc1");
++	done = 1;
++	puts("Bootdev(policy): mmc 1 (SD only)\n");
++	return;
++#endif
++
+ 	/* configuration */
+ 	if (!param_parse_assign_bootdev(&devtype, &devnum)) {
+ 		if (!bootdev_init(devtype, devnum)) {
+diff --git a/arch/arm/mach-rockchip/spl-boot-order.c b/arch/arm/mach-rockchip/spl-boot-order.c
+index 3b94307..cc355e4 100644
+--- a/arch/arm/mach-rockchip/spl-boot-order.c
++++ b/arch/arm/mach-rockchip/spl-boot-order.c
+@@ -152,6 +152,13 @@ void board_boot_order(u32 *spl_boot_list)
+ 	int node;
+ 	const char *conf;
+ 
++#ifdef CONFIG_EMMC_STUDIO_SD_ONLY
++	/* MMC2 maps to MMC index 1, the SD controller in rk3528-u-boot.dtsi. */
++	spl_boot_list[0] = BOOT_DEVICE_MMC2;
++	puts("eMMC Studio SPL: SD only\n");
++	return;
++#endif
++
+ 	if (chosen_node < 0) {
+ 		debug("%s: /chosen not found, using spl_boot_device()\n",
+ 		      __func__);
+diff --git a/include/configs/rockchip-common.h b/include/configs/rockchip-common.h
+index 0d78037..afc38d2 100644
+--- a/include/configs/rockchip-common.h
++++ b/include/configs/rockchip-common.h
+@@ -209,6 +209,18 @@
+ 	"bootrkp;"
+ #endif
+ 
++#ifdef CONFIG_EMMC_STUDIO_SD_ONLY
++#undef BOOT_TARGET_DEVICES
++#define BOOT_TARGET_DEVICES(func) func(MMC, mmc, 1)
++#undef RKIMG_DET_BOOTDEV
++#define RKIMG_DET_BOOTDEV \
++	"rkimg_bootdev=setenv devtype mmc; setenv devnum 1; mmc dev 1;\0"
++#undef RKIMG_BOOTCOMMAND
++#define RKIMG_BOOTCOMMAND \
++	"setenv boot_targets mmc1; setenv devtype mmc; setenv devnum 1;" \
++	"run distro_bootcmd;"
++#endif
++
+ #endif /* CONFIG_SPL_BUILD */
+ 
+ #define CONFIG_DISPLAY_BOARDINFO_LATE

@@ -33,7 +33,7 @@ jobs:
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, re
           data = json.load(open('sources.json'))
-          for name in ('armbian', 'studio'):
+          for name in ('armbian', 'studio', 'uboot'):
               commit = data[name]['commit']
               assert re.fullmatch('[a-f0-9]{40}', commit)
               print(f'{name}={commit}')
@@ -51,6 +51,13 @@ jobs:
           repository: JasonYANG170/eMMC-Studio
           ref: ${{ steps.sources.outputs.studio }}
           path: studio
+          persist-credentials: false
+      - name: Checkout pinned U-Boot for patch validation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: radxa/u-boot
+          ref: ${{ steps.sources.outputs.uboot }}
+          path: uboot-policy-check
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -78,6 +85,9 @@ jobs:
           sudo apt-get install -y shellcheck qemu-user-static binfmt-support xz-utils
           find userpatches scripts -name '*.sh' -print0 | xargs -0 shellcheck
           find userpatches scripts -name '*.sh' -print0 | xargs -0 -n1 bash -n
+          shellcheck --shell=bash userpatches/config-emmc-studio.conf
+          bash -n userpatches/config-emmc-studio.conf
+          python3 scripts/check-sd-only.py --uboot uboot-policy-check --armbian build
           python3 scripts/prepare.py
           bash scripts/test-bootstrap.sh
           df -h .
@@ -129,6 +139,9 @@ jobs:
           find userpatches scripts -name '*.sh' -print0 | xargs -0 shellcheck
           find userpatches scripts -name '*.sh' -print0 | xargs -0 -n1 bash -n
           python3 -m py_compile scripts/prepare.py
+          python3 -m py_compile scripts/check-sd-only.py
+          shellcheck --shell=bash userpatches/config-emmc-studio.conf
+          bash -n userpatches/config-emmc-studio.conf
 
   release:
     needs: build

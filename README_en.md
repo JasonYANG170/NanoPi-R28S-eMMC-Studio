@@ -120,3 +120,7 @@ Uninstallation preserves administrator settings, backups, and task data by defau
 CI verifies builds, preinstalled files, the first-boot credential lifecycle, enabled services, and image boot-file formats. CI does not include a physical NanoPi R28S, so it cannot replace serial boot, network, eMMC/BOOT read, or physical USB testing. Published reports describe the checks actually performed; successful compilation is not treated as hardware acceptance.
 
 Armbian lists this board as Community supported. Refer to the respective repositories for source and licensing requirements for the upstream kernel, U-Boot, firmware, and eMMC Studio. This repository does not change their licenses.
+
+## SD-only boot policy
+
+The compiled SPL and automatic U-Boot boot select SD only. Linux keeps eMMC available for reader operations. See [policy and BootROM limits](docs/SD-ONLY-BOOT.md). Without a valid SD loader, the SoC BootROM may still execute another loader from eMMC.

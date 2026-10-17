@@ -46,6 +46,14 @@ from pathlib import Path
 assert Path(sys.argv[1]).read_bytes()[:4] == bytes.fromhex('27051956'), 'uInitrd has no U-Boot legacy header'
 info = json.loads(Path(sys.argv[2]).read_text())
 assert info['board'] == 'nanopi-r28s' and info['branch'] == 'vendor'
+assert info['uboot']['policy'] == 'sd-only-spl-and-uboot'
 print(json.dumps(info, indent=2))
 PY
+
+mapfile -t configs < <(find "$root/usr/lib" -type f -name 'u-boot-config-target-*')
+[[ ${#configs[@]} -gt 0 ]]
+for config in "${configs[@]}"; do
+    grep -qx 'CONFIG_EMMC_STUDIO_SD_ONLY=y' "$config"
+done
+echo 'PASS: installed U-Boot build configuration enables SD-only boot.'
 echo 'PASS: image contains eMMC Studio, enabled services and valid U-Boot initramfs; no shared credentials.'

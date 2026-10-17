@@ -16,7 +16,9 @@
 4. NanoPi R28S 插入 SD 卡，接入有 DHCP 的局域网并通电。首次启动可能需要几分钟完成系统盘扩容及系统初始化。
 5. 在路由器 DHCP 列表中查找设备，或通过串口登录后执行 `hostname -I`。本固件主机名为 `emmc-studio`，IP 由网络分配，没有固定 IP。
 
-推荐从 SD 卡启动，让 eMMC 保持为被管理的存储。若将系统装到 eMMC，eMMC 会成为系统盘并被禁止破坏性修改，不适合整盘读卡器用途。固件不会自动刷写、格式化或恢复 eMMC，也不改变 OTG Gadget 配置。
+本固件的 SPL/U-Boot 自动启动只选择 SD 卡，让 eMMC 保持为被管理的存储。若将系统装到 eMMC，eMMC 会成为系统盘并被禁止破坏性修改，不适合整盘读卡器用途。固件不会自动刷写、格式化或恢复 eMMC，也不改变 OTG Gadget 配置。
+
+SD-only 策略及 BootROM 边界见 [启动限制说明](docs/SD-ONLY-BOOT.md)。无有效 TF 加载器时，BootROM 仍可能执行 eMMC 上的其他加载器。
 
 板级启动配置沿用上游 `nanopi-r28s.csc`，包括 GPT、512 MiB ext4 启动分区和 `rk3528-nanopi-rev03.dtb`。本镜像用于 NanoPi R28S，其他 RK3528 板卡应使用其自身的板级配置。
 
